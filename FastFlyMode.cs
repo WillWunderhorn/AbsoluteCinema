@@ -19,6 +19,8 @@ namespace DIrectorMode
         private readonly CinematicFly cinematicFly;
         public bool IsFlying => flying;
         private const KeyCode GameExitKey = KeyCode.Space;
+        private float bankVelocity;
+        private float filteredRate;
 
         public FastFlyMode(CinematicFly cinematicFly)
         {
@@ -109,49 +111,62 @@ namespace DIrectorMode
             vp_FPSCamera cam = GameManager.GetVpFPSCamera();
             if (cam == null) return;
 
+            float dt = Time.unscaledDeltaTime;
+            if (dt < 0.0001f) return;
+
             Settings s = Settings.Instance;
-            float targetRoll = 0f;
 
             if (Main.LookAt != null && (Main.LookAt.IsPlacing || Main.LookAt.HasTarget))
             {
                 hasBankYaw = false;
+                filteredRate = 0f;
                 bankRoll = 0f;
+                bankVelocity = 0f;
                 if (Main.HollandAngle != null)
                     Main.HollandAngle.SetFlyBank(0f);
                 return;
             }
 
+            float targetRoll = 0f;
+
             if (flying && s.flyBankEnabled && Time.timeScale > 0f &&
                 !(Main.Tutorial != null && Main.Tutorial.IsOpen))
             {
                 float yaw = cam.Angle.x;
+
                 if (hasBankYaw)
                 {
-                    float yawDelta = Mathf.DeltaAngle(previousBankYaw, yaw);
-                    if (Mathf.Abs(yawDelta) < 45f)
+                    float delta = Mathf.DeltaAngle(previousBankYaw, yaw);
+
+                    // A big jump = something else moved the view (resync, teleport): ignore this frame, keep the last rate
+                    if (Mathf.Abs(delta) < 45f)
                     {
-                        // positive yaw is a right turn, bank in the same direction like a drone
-                        targetRoll = Mathf.Clamp(-yawDelta * s.flyBankStrength * 5f, -30f, 30f);
+                        float rate = delta / dt;                                  // degrees per second, + = turning right
+                        float k = 1f - Mathf.Exp(-10f * dt);                      // low-pass: mouse input is very uneven per frame
+                        filteredRate = Mathf.Lerp(filteredRate, rate, k);
                     }
                 }
 
                 previousBankYaw = yaw;
                 hasBankYaw = true;
+
+                // same strength scale as before (per-frame value at 60 fps), now in degrees per second
+                targetRoll = Mathf.Clamp(-filteredRate * s.flyBankStrength * (5f / 60f), -30f, 30f);
             }
             else
             {
                 hasBankYaw = false;
+                filteredRate = 0f;
             }
 
-            float follow = 1f - Mathf.Exp(-8f * Time.unscaledDeltaTime);
-            bankRoll = Mathf.Lerp(bankRoll, targetRoll, follow);
-            if (Mathf.Abs(bankRoll - targetRoll) < 0.05f) bankRoll = targetRoll;
+            bankRoll = Mathf.SmoothDamp(bankRoll, targetRoll, ref bankVelocity, 0.12f, Mathf.Infinity, dt);
+            if (targetRoll == 0f && Mathf.Abs(bankRoll) < 0.02f) { bankRoll = 0f; bankVelocity = 0f; }
 
             if (Main.HollandAngle != null)
                 Main.HollandAngle.SetFlyBank(bankRoll);
         }
 
-        
+
 
         public void StopFly(bool notify = true)
         {
@@ -172,6 +187,7 @@ namespace DIrectorMode
             hasBankYaw = false;
             bankRoll = 0f;
             if (Main.HollandAngle != null) Main.HollandAngle.SetFlyBank(0f);
+            filteredRate = 0f; bankVelocity = 0f;
         }
 
         private FlyMode GetFlyMode()

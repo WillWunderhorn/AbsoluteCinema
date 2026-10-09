@@ -75,19 +75,6 @@ namespace DIrectorMode
             float k = 1f - Mathf.Exp(-FollowSpeed(s.hollandSmoothness) * Time.unscaledDeltaTime);
             shownRoll = Mathf.Lerp(shownRoll, target, k);
             if (Mathf.Abs(shownRoll - target) < 0.05f) shownRoll = target;
-
-            float value = Mathf.DeltaAngle(0f, shownRoll);
-
-            if (Mathf.Abs(value) > 0.001f)
-            {
-                Apply(cam, value);
-                applied = true;
-            }
-            else if (applied || Mathf.Abs(flyBankRoll) > 0.001f)
-            {
-                Apply(cam, 0f);
-                applied = Mathf.Abs(flyBankRoll) > 0.001f;
-            }
         }
 
         public void EndFrame()
@@ -98,6 +85,19 @@ namespace DIrectorMode
             {
                 hasBaseline = false;
                 return;
+            }
+
+            float total = Mathf.DeltaAngle(0f, shownRoll) + flyBankRoll;
+
+            if (Mathf.Abs(total) > 0.001f)
+            {
+                cam.m_BaseRoll = total;
+                applied = true;
+            }
+            else if (applied)
+            {
+                cam.m_BaseRoll = 0f;
+                applied = false;
             }
 
             baseline = cam.Angle;
@@ -116,7 +116,7 @@ namespace DIrectorMode
             flyBankRoll = 0f;
 
             vp_FPSCamera cam = GameManager.GetVpFPSCamera();
-            if (cam != null && applied) Apply(cam, 0f);
+            if (cam != null && applied) cam.m_BaseRoll = 0f;
             applied = false;
         }
 
@@ -193,25 +193,18 @@ namespace DIrectorMode
             if (Mathf.Abs(dYaw) < 90f)
             {
                 float sign = s.hollandInvert ? -1f : 1f;
-                rawRoll += dYaw * s.hollandSensitivity * sign;// no limit
+                rawRoll += dYaw * s.hollandSensitivity * sign;
             }
 
-            // put back
             SetAllAngles(cam, lockedAngle.x, lockedAngle.y);
         }
 
         public void SetFlyBank(float value)
         {
             flyBankRoll = value;
-            vp_FPSCamera cam = GameManager.GetVpFPSCamera();
-            if (cam != null && (applied || Mathf.Abs(value) > 0.001f))
-                Apply(cam, Mathf.DeltaAngle(0f, shownRoll));
         }
 
-        private void Apply(vp_FPSCamera cam, float value)
-        {
-            cam.m_BaseRoll = value + flyBankRoll;
-        }
+
 
         private static void SetAllAngles(vp_FPSCamera cam, float y, float p)
         {
