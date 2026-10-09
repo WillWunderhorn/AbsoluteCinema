@@ -4,6 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	  <AssemblyName>AbsoluteCinema</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,7 +24,7 @@
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
 	<Copy SourceFiles="$(TargetPath)" DestinationFolder="C:\SteamLibrary\steamapps\common\TheLongDark\Mods" /> 
-	<Message Text="Copied DirectorMode.dll to the game Mods folder." Importance="high" />
+	<Message Text="Copied DirectorMode.dll to the game Mods folder." Importance="high" /> 
   </Target>
 
 </Project>

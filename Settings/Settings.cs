@@ -11,7 +11,7 @@ namespace DIrectorMode
         [Section("Tutorial")] // -------------------------------------------------------------------------------------- Tutorial
 
         [Name("Open tutorial")]
-        [Description("Little wolf Storm will show you how to use the DirectorMode!")]
+        [Description("Little wolf Storm will show you how to use the AbsoluteCinema!")]
         public KeyCode tutorialKey = KeyCode.P;
 
         [Section("Notifications")] // --------------------------------------------------------------------------------- Notifications
@@ -53,7 +53,7 @@ namespace DIrectorMode
         public int easeStrength = 15;
 
         [Name("Path curve amount")]
-        [Description("How smoothly the flight curves through the recorded points; 0 follows straight segments")]
+        [Description("How smoothly the flight curves through the recorded points, 0 follows straight segments")]
         [Slider(0, 1000)]
         public int pathCurveAmount = 350;
 
@@ -71,7 +71,7 @@ namespace DIrectorMode
         public float pathCameraSmoothing = 20f;
 
         [Name("Path preview opacity")]
-        [Description("Opacity of the path preview; 0.5 is half-visible")]
+        [Description("Opacity of the path preview, 0.5 is half-visible")]
         [Slider(0.05f, 1f)]
         public float pathPreviewOpacity = 0.5f;
 
@@ -164,7 +164,7 @@ namespace DIrectorMode
         public float vertigoMouseSensitivity = 0.1f;
 
         [Name("Movement smoothing")]
-        [Description("Higher values make the camera respond more slowly; this does not change dolly distance")]
+        [Description("Higher values make the camera respond more slowly, this does not change dolly distance")]
         [Slider(1f, 20f)]
         public float vertigoSmoothing = 8f;
 

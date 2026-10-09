@@ -39,7 +39,7 @@ namespace DIrectorMode
         {
             Instance = this;
 
-            Settings.Instance.AddToModSettings("Director Mode");
+            Settings.Instance.AddToModSettings("Absolute Cinema");
             if (Settings.Instance.weatherMenuKey == KeyCode.F8)
                 Settings.Instance.weatherMenuKey = KeyCode.O;
             if (Settings.Instance.slowMoKey == KeyCode.O)
