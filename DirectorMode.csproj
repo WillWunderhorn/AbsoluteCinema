@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Il2CppInterop.Common" Version="1.5.3" />
+    <PackageReference Include="Il2CppInterop.Runtime" Version="1.5.3" />
+    <PackageReference Include="LavaGang.MelonLoader" Version="0.7.3" />
+    <PackageReference Include="STBlade.Modding.TLD.ModSettings" Version="1.9.0" />
+    <PackageReference Include="Waltz.Modding.TLD.Il2CppAssemblies.Windows" Version="2.52.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TutorialMaterials\" />
+	<EmbeddedResource Include="TutorialMaterials\**\*" Exclude="TutorialMaterials\**\*.psd;TutorialMaterials\**\*.PSD" />
+	<EmbeddedResource Include="Menu\**\*" Exclude="Menu\**\*.psd;Menu\**\*.PSD" />
+  </ItemGroup>
+	
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	<Copy SourceFiles="$(TargetPath)" DestinationFolder="C:\SteamLibrary\steamapps\common\TheLongDark\Mods" /> 
+	<Message Text="Copied DirectorMode.dll to the game Mods folder." Importance="high" />
+  </Target>
+
+</Project>
