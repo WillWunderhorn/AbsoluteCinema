@@ -20,4 +20,4 @@ Adds 10 tools for creating cinematic footage and a menu to control the game.
 
 
 
-<img src="https://github.com/WillWunderhorn/AbsoluteCinema/blob/master/DirectorModePreview.png?raw=true" width="100%">
+<img src="https://github.com/WillWunderhorn/AbsoluteCinema/blob/master/DirectorModePreview.webp?raw=true" width="100%">
