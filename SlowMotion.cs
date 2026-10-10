@@ -96,7 +96,7 @@ namespace DIrectorMode
             currentScale = Mathf.Clamp(currentScale, ScaleMin, ScaleMax);
 
             Apply(currentScale);
-            MelonLogger.Msg("Time scale: " + currentScale.ToString("0.00") + "x");
+            //MelonLogger.Msg("Time scale: " + currentScale.ToString("0.00") + "x");
         }
 
         public void Reset()

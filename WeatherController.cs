@@ -284,7 +284,7 @@ namespace DIrectorMode
                 if (w == null) return false;
 
                 w.m_LockedWindSpeed = float.NegativeInfinity;
-                MelonLogger.Msg("WeatherController: wind unlocked");
+                //MelonLogger.Msg("WeatherController: wind unlocked");
                 return true;
             }
             catch (Exception e)

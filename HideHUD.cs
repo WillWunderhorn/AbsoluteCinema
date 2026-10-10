@@ -82,7 +82,7 @@ namespace DIrectorMode
             }
 
             hidden = true;
-            MelonLogger.Msg("HUD hidden (" + panels.Count + " panels)");
+            //MelonLogger.Msg("HUD hidden (" + panels.Count + " panels)");
         }
 
         private void Show()

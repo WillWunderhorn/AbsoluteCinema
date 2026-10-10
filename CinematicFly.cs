@@ -110,10 +110,10 @@ namespace DIrectorMode
             moving = true;
             SuppressCameraSway(true);
 
-            MelonLogger.Msg(
-                "Flight started: " + totalDistance.ToString("F1") + " m, " +
-                (totalDistance / currentSpeed).ToString("F1") + " s, " +
-                positions.Points.Count + " points");
+            //MelonLogger.Msg(
+            //    "Flight started: " + totalDistance.ToString("F1") + " m, " +
+            //    (totalDistance / currentSpeed).ToString("F1") + " s, " +
+            //    positions.Points.Count + " points");
         }
 
         public void Update()
