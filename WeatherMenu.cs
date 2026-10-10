@@ -89,7 +89,7 @@ namespace DIrectorMode
             if (isOpen)
             {
                 LockPlayerControl();
-                MelonLoader.MelonLogger.Msg("Weather menu opened.");
+                //MelonLoader.MelonLogger.Msg("Weather menu opened.");
 
                 vp_FPSCamera cam = GameManager.GetVpFPSCamera();
                 lockedAngle = cam != null ? cam.Angle : Vector2.zero;
@@ -97,7 +97,7 @@ namespace DIrectorMode
             else
             {
                 RestorePlayerControl();
-                MelonLoader.MelonLogger.Msg("Weather menu closed.");
+                //MelonLoader.MelonLogger.Msg("Weather menu closed.");
             }
         }
 

@@ -127,8 +127,9 @@ namespace DIrectorMode
             }
 
             loadQueue.Enqueue(() => GetFont());
-            loadQueue.Enqueue(() => MelonLogger.Msg(
-                "Tutorial: preloaded " + pages.Count + " pages and " + sounds.Count + " sounds"));
+            //loadQueue.Enqueue(() => 
+            //MelonLogger.Msg(
+            //    "Tutorial: preloaded " + pages.Count + " pages and " + sounds.Count + " sounds"));
         }
 
         private void LoadOneSound(System.Reflection.Assembly asm, string res)
@@ -372,8 +373,8 @@ namespace DIrectorMode
             lastSound = i;
             sfx.PlayOneShot(sounds[i], SfxVolume);
 
-            MelonLogger.Msg("Tutorial: played sound " + i + " (listener volume " +
-                AudioListener.volume + ", paused " + AudioListener.pause + ")");
+            //MelonLogger.Msg("Tutorial: played sound " + i + " (listener volume " +
+            //    AudioListener.volume + ", paused " + AudioListener.pause + ")");
         }
 
         private IEnumerator CaptureBackground()
