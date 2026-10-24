@@ -17,30 +17,23 @@ namespace DIrectorMode
 
         private static KeyCode GetKey()
         {
-            try
-            {
-                KeyCode k = Settings.Instance.slowMoKey;
-                if (k != KeyCode.None)
-                    return k;
-            }
-            catch { }
-            return KeyCode.O;
+            KeyCode k = Settings.Instance.slowMoKey;
+            return k == KeyCode.None ? KeyCode.O : k;
         }
 
         private static float GetStepFactor()
         {
-            try
-            {
-                float s = Settings.Instance.slowMoWheelStep;
-                if (s > 0f)
-                    return 1f + Mathf.Clamp(s, 0.05f, 0.5f);
-            }
-            catch { }
+            float s = Settings.Instance.slowMoWheelStep;
+            if (s > 0f)
+                return 1f + Mathf.Clamp(s, 0.05f, 0.5f);
             return 1.15f; // +15% per notch
         }
 
         public void Update()
         {
+            if (Main.Greenscreen != null && Main.Greenscreen.IsPlacing)
+                return;
+
             if (Main.Vertigo != null && Main.Vertigo.IsActive)
                 return;
 
@@ -63,7 +56,7 @@ namespace DIrectorMode
                     currentScale = 1f;
                     Apply(1f);
                     lastPress = -10f;
-                    Main.Notify("Time scale: normal");
+                    //Main.Notify("Time scale: normal");
                 }
                 else
                 {

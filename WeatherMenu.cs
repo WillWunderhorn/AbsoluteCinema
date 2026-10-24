@@ -42,6 +42,9 @@ namespace DIrectorMode
         private bool ghostModeEnabled;
         private PlayerControlMode previousControlMode;
         private bool controlModeSaved;
+        private float savedFov = 60f;
+        private float savedRenderingFov = 60f;
+        private bool fovSaved;
         private GUIStyle titleStyle = null!;
         private GUIStyle labelStyle = null!;
         private GUIStyle buttonStyle = null!;
@@ -72,39 +75,161 @@ namespace DIrectorMode
         private Texture2D? arrowRightInactive;
         private Texture2D? sliderLine;
         private Texture2D? sliderKnob;
+        private Texture2D? saveButton;
+
         public bool IsOpen => isOpen;
         public WeatherMenu(WeatherController controller) { weather = controller; }
 
         public void Toggle()
         {
-            if (!isOpen && !CanOpen())
+            if (isOpen)
             {
-                Main.Notify("The weather menu works in free roam only");
+                Close();
+                return;
+            }
+
+            if (!CanOpen())
+            {
+                //Main.Notify("The weather menu works in free roam only"); //debug
                 return;
             }
 
             SyncFromGame();
-            isOpen = !isOpen;
+            isOpen = true;
             pressedControl = null;
-            if (isOpen)
-            {
-                LockPlayerControl();
-                //MelonLoader.MelonLogger.Msg("Weather menu opened."); 
+            SaveFov();
+            LockPlayerControl();
 
-                vp_FPSCamera cam = GameManager.GetVpFPSCamera();
-                lockedAngle = cam != null ? cam.Angle : Vector2.zero;
-            }
-            else
-            {
-                RestorePlayerControl();
-                //MelonLoader.MelonLogger.Msg("Weather menu closed.");
-            }
+            vp_FPSCamera cam = GameManager.GetVpFPSCamera();
+            lockedAngle = cam != null ? cam.Angle : Vector2.zero;
         }
 
+        // True only when the menu may be opened (player fully in free roam).
         private static bool CanOpen()
         {
-            if (GameManager.GetVpFPSCamera() == null) return false;
-            return Main.Tutorial != null && Main.Tutorial.IsFreeRoam();
+            if (!CanStayOpen())
+                return false;
+
+            // Do not open over inventory / dialogue / other locked control modes.
+            try
+            {
+                PlayerManager player = GameManager.GetPlayerManagerComponent();
+                if (player != null)
+                {
+                    PlayerControlMode mode = player.GetControlMode();
+                    if (mode != PlayerControlMode.Normal)
+                        return false;
+                }
+            }
+            catch { }
+
+            return true;
+        }
+
+        // True while free-roam conditions still hold (allows Locked control from this menu).
+        private static bool CanStayOpen()
+        {
+            if (GameManager.GetVpFPSCamera() == null)
+                return false;
+
+            if (Main.Tutorial == null || Main.Tutorial.IsOpen)
+                return false;
+
+            if (!Main.Tutorial.IsFreeRoam())
+                return false;
+
+            if (ConsoleState.IsOpen || UnityExplorerState.IsOpen)
+                return false;
+
+            if (PlacingState.IsPlacing)
+                return false;
+
+            if (Time.timeScale <= 0f)
+                return false;
+
+            try
+            {
+                if (GameManager.IsMainMenuActive())
+                    return false;
+            }
+            catch { }
+
+            try
+            {
+                if (InterfaceManager.DetermineIfOverlayIsActive())
+                    return false;
+            }
+            catch { }
+
+            // Extra hard blocks for panels IsFreeRoam can miss depending on UI hierarchy
+            if (IsBlockingPanelOpen())
+                return false;
+
+            return true;
+        }
+
+        private static readonly string[] BlockingPanels =
+        {
+            "Panel_Inventory", "Panel_Map", "Panel_MapMenu", "Panel_PauseMenu",
+            "Panel_Log", "Panel_Journal", "Panel_Actions", "Panel_ActionsRadial",
+            "Panel_BodyHarvest", "Panel_BreakDown", "Panel_Cooking", "Panel_Crafting",
+            "Panel_IceFishing", "Panel_MainMenu", "Panel_OptionsMenu", "Panel_Stats",
+            "Panel_SandBoxing", "Panel_Notification", "Panel_FireStart", "Panel_PickWater"
+        };
+
+        private static bool IsBlockingPanelOpen()
+        {
+            if (Main.Tutorial == null)
+                return true;
+
+            for (int i = 0; i < BlockingPanels.Length; i++)
+            {
+                try
+                {
+                    if (Main.Tutorial.IsPanelActive(BlockingPanels[i]))
+                        return true;
+                }
+                catch { }
+            }
+
+            return false;
+        }
+
+        private void SaveFov()
+        {
+            fovSaved = false;
+            vp_FPSCamera cam = GameManager.GetVpFPSCamera();
+            if (cam == null || cam.m_Camera == null)
+                return;
+
+            savedFov = cam.m_Camera.fieldOfView;
+            savedRenderingFov = cam.m_RenderingFieldOfView;
+            if (Main.CamZoom != null)
+                Main.CamZoom.CaptureBaseFov(cam);
+
+            fovSaved = true;
+        }
+
+        private void ApplySavedFov()
+        {
+            if (!fovSaved)
+                return;
+
+            vp_FPSCamera cam = GameManager.GetVpFPSCamera();
+            if (cam == null || cam.m_Camera == null)
+                return;
+
+            cam.m_Camera.fieldOfView = savedFov;
+            cam.m_RenderingFieldOfView = savedRenderingFov;
+        }
+
+        private void RestoreFov()
+        {
+            if (!fovSaved)
+                return;
+
+            ApplySavedFov();
+            fovSaved = false;
         }
 
         private void SyncFromGame()
@@ -172,12 +297,23 @@ namespace DIrectorMode
         {
             if (!isOpen) return;
 
-            if (!ConsoleState.IsOpen && !UnityExplorerState.IsOpen && Input.GetKeyDown(KeyCode.Escape)) Close();
+            // Drop out the moment free-roam is lost (inventory, pause, map, etc.)
+            if (!CanStayOpen())
+            {
+                Close();
+                return;
+            }
+
+            if (!ConsoleState.IsOpen && !UnityExplorerState.IsOpen && Input.GetKeyDown(KeyCode.Escape))
+                Close();
         }
 
         public void LateUpdate()
         {
             if (!isOpen) return;
+
+            // Keep FOV pinned – Locked control mode often rewrites it after open.
+            ApplySavedFov();
 
             vp_FPSCamera cam = GameManager.GetVpFPSCamera();
             if (cam == null) return;
@@ -200,6 +336,9 @@ namespace DIrectorMode
             isOpen = false;
             pressedControl = null;
             RestorePlayerControl();
+            RestoreFov();
+            if (Main.SmoothCamera != null)
+                Main.SmoothCamera.RequestSync();
         }
 
         private void DrawChoice<T>(string caption, System.Collections.Generic.IReadOnlyList<T> items,
@@ -425,12 +564,14 @@ namespace DIrectorMode
                 unlockWeatherButton = LoadTexture(assembly, "UnlockWeatherButton.png");
                 unlockWindButton = LoadTexture(assembly, "UnlockWindButton.png");
                 setTimeButton = LoadTexture(assembly, "SetTimeButton.png");
+                saveButton = LoadTexture(assembly, "SaveButton.png");
                 checkMark = LoadTexture(assembly, "Check.png");
                 checkBoxUnchecked = LoadTexture(assembly, "CheckBoxUnchecked.png");
                 godModeLabel = LoadTexture(assembly, "GodMode.png");
                 ghostLabel = LoadTexture(assembly, "Ghost.png");
                 sliderKnob = LoadTexture(assembly, "SliderKnob.png");
                 sliderLine = LoadTexture(assembly, "SliderLine.png");
+
             }
 
             if (!soundsLoadStarted)
@@ -467,7 +608,11 @@ namespace DIrectorMode
                     else weatherLocked = weather.SetWeather(SelectedWeather(), true);
                 },
                 applyButton, weatherLocked ? unlockWeatherButton : lockWeatherButton,
-                "", null, "weather_apply", "weather_lock", interactive);
+                applyButton == null ? "Apply" : null,
+                (weatherLocked ? unlockWeatherButton : lockWeatherButton) == null
+                    ? (weatherLocked ? "Unlock" : "Lock")
+                    : null,
+                "weather_apply", "weather_lock", interactive);
 
             DrawTitle("WIND", left, top + Layout.WindTitleY * scale, width, 54f * scale, scale);
             DrawChoice("Set wind", weather.WindStrengths, ref strengthIndex, x => x.Name, left, top, scale, Layout.WindStrengthY, interactive);
@@ -485,7 +630,11 @@ namespace DIrectorMode
                     else windLocked = weather.SetWind(SelectedStrength(), SelectedDirection(), true);
                 },
                 applyWindButton, windLocked ? unlockWindButton : lockWindButton,
-                null, null, "wind_apply", "wind_lock", interactive);
+                applyWindButton == null ? "Apply" : null,
+                (windLocked ? unlockWindButton : lockWindButton) == null
+                    ? (windLocked ? "Unlock" : "Lock")
+                    : null,
+                "wind_apply", "wind_lock", interactive);
 
             DrawTitle("TIME OF THE DAY", left, top + Layout.TimeTitleY * scale, width, 54f * scale, scale);
             float sliderX = Layout.SliderX * scale;
@@ -516,7 +665,10 @@ namespace DIrectorMode
             DrawImageButton("set_time", setTimeButton,
                 new Rect(left + (DesignWidth - Layout.TimeButtonWidth) * 0.5f * scale,
                     top + Layout.TimeButtonY * scale, Layout.TimeButtonWidth * scale, Layout.ButtonHeight * scale),
-                scale, () => weather.SetTimeOfDay(timeOfDayMinutes), null, interactive);
+                scale,
+                () => weather.SetTimeOfDay(timeOfDayMinutes),
+                setTimeButton == null ? "Set time" : null,
+                interactive);
             DrawCheckbox("god_mode", checkBoxUnchecked, checkMark, godModeLabel, godModeEnabled,
                 Layout.ToggleX * scale, Layout.GodToggleY * scale, scale,
                 () =>
@@ -529,6 +681,16 @@ namespace DIrectorMode
                 {
                     if (weather.ToggleGhostMode()) ghostModeEnabled = weather.IsGhostModeEnabled();
                 }, interactive);
+
+            DrawImageButton("save_game", saveButton,
+                new Rect(left + 14f * scale,
+                    top + Layout.TimeButtonY * scale, 130f * scale, Layout.ButtonHeight * scale),
+                scale, () => weather.TriggerSave(), null, interactive);
+
+            DrawImageButton("set_time", setTimeButton,
+                new Rect(left + (DesignWidth - Layout.TimeButtonWidth) * 0.5f * scale,
+                    top + Layout.TimeButtonY * scale, Layout.TimeButtonWidth * scale, Layout.ButtonHeight * scale),
+                scale, () => weather.SetTimeOfDay(timeOfDayMinutes), null, interactive);
         }
 
         private static AudioClip? LoadWav(Assembly assembly, string resourceSuffix)

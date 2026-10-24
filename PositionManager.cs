@@ -16,6 +16,8 @@ namespace DIrectorMode
         private Material previewMaterial;
         private bool previewDirty = true;
         private int previewCurveAmount = -1;
+        private int previewPointCount = -1;
+        private readonly List<Vector3> previewSampleBuffer = new List<Vector3>(2048);
 
         public IReadOnlyList<Vector3> Points => points;
         public bool HasPosition1 => points.Count >= 1;
@@ -41,7 +43,6 @@ namespace DIrectorMode
                 return;
             }
 
-            // Starting a new path after a completed one replaces the old path.
             if (pathFinalized)
             {
                 points.Clear();
@@ -111,6 +112,33 @@ namespace DIrectorMode
             return samples;
         }
 
+        private void FillPathSamples(List<Vector3> output, int curveAmount, int samplesPerSegment = 24)
+        {
+            output.Clear();
+
+            if (points.Count < 2)
+                return;
+
+            float curve = Mathf.Clamp(curveAmount, 0, 100) / 100f;
+            output.Add(points[0]);
+
+            for (int segment = 0; segment < points.Count - 1; segment++)
+            {
+                Vector3 p0 = points[Mathf.Max(0, segment - 1)];
+                Vector3 p1 = points[segment];
+                Vector3 p2 = points[segment + 1];
+                Vector3 p3 = points[Mathf.Min(points.Count - 1, segment + 2)];
+
+                for (int step = 1; step <= samplesPerSegment; step++)
+                {
+                    float t = step / (float)samplesPerSegment;
+                    Vector3 straight = Vector3.Lerp(p1, p2, t);
+                    Vector3 curved = CatmullRom(p0, p1, p2, p3, t);
+                    output.Add(Vector3.Lerp(straight, curved, curve));
+                }
+            }
+        }
+
         public void UpdatePreview()
         {
             Settings settings = Settings.Instance;
@@ -126,10 +154,10 @@ namespace DIrectorMode
             int curveAmount = settings.pathCurveAmount;
             if (previewDirty || previewCurveAmount != curveAmount)
             {
-                List<Vector3> samples = BuildPathSamples(curveAmount);
-                previewLine.positionCount = samples.Count;
-                for (int i = 0; i < samples.Count; i++)
-                    previewLine.SetPosition(i, samples[i]);
+                FillPathSamples(previewSampleBuffer, curveAmount);
+                previewLine.positionCount = previewSampleBuffer.Count;
+                for (int i = 0; i < previewSampleBuffer.Count; i++)
+                    previewLine.SetPosition(i, previewSampleBuffer[i]);
 
                 previewCurveAmount = curveAmount;
                 previewDirty = false;
@@ -139,7 +167,7 @@ namespace DIrectorMode
             Color pathColor = new Color(1f, 0.78f, 0.25f, opacity);
             previewLine.startColor = pathColor;
             previewLine.endColor = pathColor;
-            previewLine.enabled = true;
+            previewLine.enabled = true;        // -3 hours if my life
         }
 
         public void ResetPositions(bool notify = true)
@@ -150,13 +178,14 @@ namespace DIrectorMode
             points.Clear();
             pathFinalized = false;
             previewDirty = true;
+            previewSampleBuffer.Clear();
             if (previewLine != null)
             {
                 previewLine.positionCount = 0;
                 previewLine.enabled = false;
             }
 
-            if (notify) Main.Notify("Path cleared");
+            //if (notify) Main.Notify("Path cleared");
         }
 
         public void DestroyPreview()
@@ -171,6 +200,7 @@ namespace DIrectorMode
             previewMaterial = null;
             previewDirty = true;
             previewCurveAmount = -1;
+            previewSampleBuffer.Clear();
         }
 
         private bool EnsurePreview()

@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace DIrectorMode
 {
-    // UnityExplorer is an optional mod, so detect its menu through reflection instead of referencing it.
     internal static class UnityExplorerState
     {
         private const BindingFlags StaticPublic = BindingFlags.Public | BindingFlags.Static;
@@ -23,6 +22,13 @@ namespace DIrectorMode
                 cachedValue = ReadOpenState();
                 return cachedValue;
             }
+        }
+
+        internal static void Invalidate()
+        {
+            showMenuProperty = null;
+            cachedFrame = -1;
+            cachedValue = false;
         }
 
         private static bool ReadOpenState()

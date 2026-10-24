@@ -64,6 +64,7 @@ namespace DIrectorMode
             if (Main.CinematicFly != null && Main.CinematicFly.IsMoving) return false;
             if (Main.Tutorial != null && Main.Tutorial.IsOpen) return false;
             if (Main.Vertigo != null && Main.Vertigo.IsActive) return false;
+            if (Main.Greenscreen != null && Main.Greenscreen.IsPlacing) return false;
             return true;
         }
 

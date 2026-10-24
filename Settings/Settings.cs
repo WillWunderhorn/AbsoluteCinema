@@ -177,15 +177,29 @@ namespace DIrectorMode
         [Name("Fly speed")]
         [Description("Can be changed during movement via mouse wheel")]
         [Slider(0.1f, 20f)]
-        public float flySpeedRegular = 0.5f;
+        public float flySpeedRegular = 2f;
 
-        [Name("Bank while turning")]
-        [Description("Tilt the camera into turns while FlyMode is active")]
+        [Name("Smooth start and stop")]
+        [Description("Fly mode speeds up slowly when you press the movement keys and glides to a stop when you release them")]
+        public bool flySmoothStartStop = true;
+
+        [Name("Start smoothness")]
+        [Description("How slowly you pick up speed (1 = instant, 100 = about 3 seconds)")]
+        [Slider(1, 100)]
+        public int flyEaseStrength = 55;
+
+        [Name("Stop smoothness")]
+        [Description("How long you glide after releasing the keys (1 = stops at once, 100 = about 3 seconds)")]
+        [Slider(1, 100)]
+        public int flyStopEaseStrength = 65;
+
+        [Name("Fly bank")]
+        [Description("Tilt the camera when turning while flying")]
         public bool flyBankEnabled = true;
 
-        [Name("Turn banking strength")]
-        [Description("Controls how strongly the camera banks while turning")]
-        [Slider(0f, 5f)]
+        [Name("Bank strength")]
+        [Description("How much the camera banks when turning in fly mode")]
+        [Slider(0.1f, 3f)]
         public float flyBankStrength = 1f;
 
         [Section("Weather menu")] // ---------------------------------------------------------------------------------- Weather menu
@@ -204,5 +218,51 @@ namespace DIrectorMode
         [Description("Fractional change per wheel notch")]
         [Slider(0.05f, 0.5f)]
         public float slowMoWheelStep = 0.5f;
+
+        [Section("Motion tracker")]
+
+        [Name("Record / stop")]
+        [Description("Press to start recording movement and camera, press again to stop")]
+        public KeyCode motionRecordKey = KeyCode.LeftBracket;
+
+        [Name("Play / stop")]
+        [Description("Press to replay the last recording, press again to stop")]
+        public KeyCode motionPlayKey = KeyCode.RightBracket;
+
+        [Section("Green screen")] // ---------------------------------------------------------------------------------- Green screen
+
+        [Name("Green screen key")]
+        [Description("Hold to place a green screen, LMB to place it, press again to remove")]
+        public KeyCode greenscreenKey = KeyCode.Semicolon;
+
+        [Name("Increase Width")]
+        [Description("Key to make the green screen wider")]
+        public KeyCode greenscreenWidthIncreaseKey = KeyCode.RightArrow;
+
+        [Name("Decrease Width")]
+        [Description("Key to make the green screen narrower")]
+        public KeyCode greenscreenWidthDecreaseKey = KeyCode.LeftArrow;
+
+        [Name("Increase Height")]
+        [Description("Key to make the green screen taller")]
+        public KeyCode greenscreenHeightIncreaseKey = KeyCode.UpArrow;
+
+        [Name("Decrease Height")]
+        [Description("Key to make the green screen shorter")]
+        public KeyCode greenscreenHeightDecreaseKey = KeyCode.DownArrow;
+
+        [Name("Rotate key")]
+        [Description("Hold while placing, then move the mouse to rotate the green screen in 3D")]
+        public KeyCode greenscreenRotateKey = KeyCode.Quote;
+
+        [Name("Rotate sensitivity")]
+        [Description("How fast the green screen turns when rotating with the mouse")]
+        [Slider(0.1f, 5f)]
+        public float greenscreenRotateSensitivity = 1f;
+
+        [Name("Distance wheel step")]
+        [Description("How much each mouse wheel notch changes distance while placing (%)")]
+        [Slider(1f, 50f)]
+        public float greenscreenWheelStep = 15f;
     }
 }

@@ -18,15 +18,15 @@ namespace DIrectorMode
     public class WindStrengthOption
     {
         public WindStrength Value;
-        public string Id;// console name
-        public string Name;// readable name
+        public string Id;
+        public string Name;
     }
 
     public class WindDirectionOption
     {
         public WindDirection Value;
-        public string Id;// console name
-        public string Name;// short name
+        public string Id;
+        public string Name;
     }
 
     public class WeatherController
@@ -34,7 +34,7 @@ namespace DIrectorMode
         private static readonly string[] WeatherOrder =
         {
             "clear", "partly_cloudy", "cloudy", "light_fog", "dense_fog",
-            "light_snow", "heavy_snow", "blizzard", "clear_aurora", "electrostatic_fog", "toxic_fog"
+            "light_snow", "heavy_snow", "blizzard", "clear_aurora", "electrostatic_fog"
         };
 
         private static readonly string[] DirectionOrder =
@@ -61,6 +61,7 @@ namespace DIrectorMode
 
         private bool haveUnlockedWindSpeed;
         private float unlockedWindSpeed;
+        public bool TriggerSave() => RunConsoleSilent("save");
 
         private int weatherIndex = -1;
         private int windIndex = -1;
@@ -75,18 +76,8 @@ namespace DIrectorMode
             weathers.Clear();
             strengths.Clear();
             directions.Clear();
-
             BuildWeatherList();
             BuildWindLists();
-
-            //MelonLogger.Msg("WeatherController: " + weathers.Count + " weather types: " +
-            //                string.Join(", ", weathers.Select(w => w.Id)));
-            //MelonLogger.Msg("WeatherController: wind strengths: " +
-            //                string.Join(", ", strengths.Select(w => w.Id)));
-            //MelonLogger.Msg("WeatherController: wind directions: " +
-            //                string.Join(", ", directions.Select(w => w.Id)));
-
-            DumpForWeatherLock();
         }
 
         private void BuildWeatherList()
@@ -100,6 +91,16 @@ namespace DIrectorMode
             }
 
             weathers.Sort((a, b) => OrderOf(WeatherOrder, a.Id).CompareTo(OrderOf(WeatherOrder, b.Id)));
+        }
+
+        public string GetCurrentWeatherName()
+        {
+            string name;
+            if (WeatherOverhaulBridge.TryGetCurrentStageName(out name))
+                return name;
+
+            WeatherOption w = GetCurrentWeather();
+            return w != null ? GetDisplayName(w) : "?";
         }
 
         private void BuildWindLists()
@@ -325,16 +326,10 @@ namespace DIrectorMode
             try
             {
                 WeatherTransition wt = GetWeatherTransition();
-                if (wt == null) return false;
-
-                bool before = wt.IsLocked();
-                if (!before) return true;
+                if (wt == null || !wt.IsLocked()) return true;
 
                 wt.m_UnmanagedWeatherStage = WeatherStage.Undefined;
-
-                bool after = wt.IsLocked();
-                //MelonLogger.Msg("WeatherController: weather unlock: IsLocked " + before + " -> " + after);
-                return !after;
+                return !wt.IsLocked();
             }
             catch (Exception e)
             {
@@ -515,22 +510,6 @@ namespace DIrectorMode
                 MelonLogger.Warning("WeatherController: uConsole.RunCommand(string) not found.");
         }
 
-        private static void DumpForWeatherLock()
-        {
-            try
-            {
-                DumpMembers("Il2Cpp.WeatherTransition", null);
-                DumpMembers("Il2Cpp.WeatherSet", null);
-                DumpMembers("Il2Cpp.GameManager",
-                    n => n.IndexOf("weather", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         n.IndexOf("wind", StringComparison.OrdinalIgnoreCase) >= 0);
-            }
-            catch (Exception e)
-            {
-                MelonLogger.Warning("WeatherController: could not dump weather classes: " + e.Message);
-            }
-        }
-
         private static void DumpMembers(string typeName, Func<string, bool> nameFilter)
         {
             Type t = typeof(GameManager).Assembly.GetType(typeName, false);
@@ -648,6 +627,29 @@ namespace DIrectorMode
                 MelonLogger.Warning("WeatherController: could not read current time: " + e.Message);
                 return -1;
             }
+        }
+
+        public string GetWeatherOverhaulStageId()
+        {
+            try
+            {
+                Type runtimeType = typeof(GameManager).Assembly.GetType("WeatherOverhaul.Weather.CustomWeatherStageRuntime");
+                if (runtimeType == null) return null;
+
+                MethodInfo tryGet = runtimeType.GetMethod("TryGetActiveStageId", BindingFlags.Public | BindingFlags.Static);
+                if (tryGet == null) return null;
+
+                object[] args = { null };
+                bool success = (bool)tryGet.Invoke(null, args);
+
+                if (success && args[0] != null)
+                {
+                    // Return the ID as a string
+                    return args[0].ToString();
+                }
+            }
+            catch { }
+            return null;
         }
     }
 

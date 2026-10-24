@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace DIrectorMode
 {
-    // this think can zoom just like in Minecraft!
     public class CamZoom
     {
         private float zoomFactor = 1f;
@@ -13,6 +12,8 @@ namespace DIrectorMode
         private float baseFov = 60f;
         private float vertigoFovScale = 1f;
         private bool vertigoRestorePending;
+        private bool wasHoldingZoom;
+
         public float ZoomFactor => zoomFactor;
         public float BaseFov => baseFov;
 
@@ -23,43 +24,33 @@ namespace DIrectorMode
             if (cam == null || cam.m_Camera == null)
             {
                 zoomFactor = 1f;
+                wasHoldingZoom = false;
                 SetSmoothForced(false);
+                vertigoRestorePending = false;
                 return;
             }
 
             Settings s = Settings.Instance;
             bool hold = Main.Key(s.zoomKey);
-
-            // saving FOV
-            if (!hold && zoomFactor <= 1.005f && Mathf.Approximately(vertigoFovScale, 1f) && !vertigoRestorePending)
-            {
-                if (zoomFactor != 1f)
-                {
-                    zoomFactor = 1f;
-                    SetFov(cam, baseFov);
-                }
-                else
-                {
-                    baseFov = cam.m_Camera.fieldOfView;
-                }
-
-                SetSmoothForced(false);
-                return;
-            }
-
-            // Zooming
             bool vertigoActive = !Mathf.Approximately(vertigoFovScale, 1f);
-            SetSmoothForced(hold || vertigoActive);
+            bool restoreThisFrame = vertigoRestorePending;
+            vertigoRestorePending = false;
 
-            // Mouse wheel
-            if (hold && !(Main.Vertigo != null && Main.Vertigo.IsActive))
+            if (hold && !wasHoldingZoom)
+                CaptureBaseFov(cam);
+            wasHoldingZoom = hold;
+
+            bool canZoomWheel =
+                hold &&
+                !(Main.Vertigo != null && Main.Vertigo.IsActive) &&
+                !(Main.Greenscreen != null && Main.Greenscreen.IsPlacing);
+
+            if (canZoomWheel)
             {
                 float scroll = Main.Scroll;
-
                 if (scroll != 0f)
                 {
                     float step = 1f + s.zoomWheelStep / 100f;
-
                     zoomTarget = Mathf.Clamp(
                         zoomTarget * Mathf.Pow(step, scroll),
                         ZoomMin,
@@ -69,11 +60,31 @@ namespace DIrectorMode
 
             float target = hold ? zoomTarget : 1f;
             float k = 1f - Mathf.Exp(-s.zoomSmoothing * Time.deltaTime);
-            
             zoomFactor = Mathf.Lerp(zoomFactor, target, k);
-            
+            if (!hold && zoomFactor < 1.01f)
+                zoomFactor = 1f;
+
+            bool needWrite =
+                hold ||
+                vertigoActive ||
+                zoomFactor > 1.005f ||
+                restoreThisFrame;
+
+            if (!needWrite)
+            {
+                SetSmoothForced(false);
+                return;
+            }
+
+            SetSmoothForced(hold || vertigoActive || zoomFactor > 1.005f);
+
+            if (restoreThisFrame && !hold && !vertigoActive && zoomFactor <= 1.005f)
+            {
+                SetFov(cam, baseFov);
+                return;
+            }
+
             SetFov(cam, CalculateCombinedFov());
-            vertigoRestorePending = false;
         }
 
         public void Reset()
@@ -81,9 +92,7 @@ namespace DIrectorMode
             zoomFactor = 1f;
             vertigoFovScale = 1f;
             vertigoRestorePending = false;
-            vp_FPSCamera cam = GameManager.GetVpFPSCamera();
-            if (cam != null && cam.m_Camera != null)
-                SetFov(cam, baseFov);
+            wasHoldingZoom = false;
             SetSmoothForced(false);
         }
 
@@ -97,8 +106,16 @@ namespace DIrectorMode
 
         public float CaptureBaseFov(vp_FPSCamera cam)
         {
-            if (cam != null && cam.m_Camera != null && zoomFactor <= 1.005f && Mathf.Approximately(vertigoFovScale, 1f))
-                baseFov = cam.m_Camera.fieldOfView;
+            if (cam != null && cam.m_Camera != null &&
+                zoomFactor <= 1.005f &&
+                Mathf.Approximately(vertigoFovScale, 1f))
+            {
+                float render = cam.m_RenderingFieldOfView;
+                float lens = cam.m_Camera.fieldOfView;
+                baseFov = (render > 1f && !Mathf.Approximately(render, lens))
+                    ? render
+                    : lens;
+            }
             return baseFov;
         }
 

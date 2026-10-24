@@ -41,14 +41,13 @@ namespace DIrectorMode
 
             Settings s = Settings.Instance;
 
-            // adopt the new slider value
             if (s.flySpeedRegular != lastSettingSpeed)
             {
                 lastSettingSpeed = s.flySpeedRegular;
                 currentSpeed = Mathf.Max(0.01f, lastSettingSpeed);
             }
 
-            // wheel changes fly speed, unless zoom or look-at
+            // wheel changes fly speed
             if (!IsWheelBlocked())
             {
                 float scroll = Main.Scroll;
@@ -89,8 +88,11 @@ namespace DIrectorMode
                 return;
             }
 
-            currentSpeed = Settings.Instance.flySpeedRegular;
-            lastSettingSpeed = currentSpeed;
+            float slider = Settings.Instance.flySpeedRegular;
+            if (currentSpeed <= 0f || slider != lastSettingSpeed)
+                currentSpeed = Mathf.Max(0.01f, slider);
+            lastSettingSpeed = slider;
+
             ApplyFlySpeeds(fm);
 
             FlyMode.Enter();
@@ -105,7 +107,7 @@ namespace DIrectorMode
             hasBankYaw = false;
         }
 
-        // after HollandAngle.Update so the fly bank composes with dutch angle
+        // after HollandAngle.Update() so the fly bank composes with dutch angle
         public void UpdateBank()
         {
             vp_FPSCamera cam = GameManager.GetVpFPSCamera();
@@ -138,11 +140,10 @@ namespace DIrectorMode
                 {
                     float delta = Mathf.DeltaAngle(previousBankYaw, yaw);
 
-                    // A big jump = something else moved the view (resync, teleport): ignore this frame, keep the last rate
                     if (Mathf.Abs(delta) < 45f)
                     {
-                        float rate = delta / dt;                                  // degrees per second, + = turning right
-                        float k = 1f - Mathf.Exp(-10f * dt);                      // low-pass: mouse input is very uneven per frame
+                        float rate = delta / dt;
+                        float k = 1f - Mathf.Exp(-10f * dt);
                         filteredRate = Mathf.Lerp(filteredRate, rate, k);
                     }
                 }
@@ -150,7 +151,6 @@ namespace DIrectorMode
                 previousBankYaw = yaw;
                 hasBankYaw = true;
 
-                // same strength scale as before (per-frame value at 60 fps), now in degrees per second
                 targetRoll = Mathf.Clamp(-filteredRate * s.flyBankStrength * (5f / 60f), -30f, 30f);
             }
             else
@@ -218,6 +218,9 @@ namespace DIrectorMode
                 return true;
 
             if (Main.Vertigo != null && Main.Vertigo.IsActive)
+                return true;
+
+            if (Main.Greenscreen != null && Main.Greenscreen.IsPlacing)
                 return true;
 
             return false;

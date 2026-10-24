@@ -22,7 +22,7 @@ namespace DIrectorMode
             else Hide();
         }
 
-        // call every update, maybe I'll find a better approach
+        // call every update, maybe I'll find a better approach (but not today)
         public void LateUpdate()
         {
             if (!hidden) return;
@@ -99,8 +99,8 @@ namespace DIrectorMode
                 if (p != null) p.alpha = savedAlpha[i];
             }
 
-            if (fallbackObject != null)
-                fallbackObject.SetActive(true);
+            if (fallbackObject != null) fallbackObject.SetActive(true);
+
         }
 
         private void ClearState()

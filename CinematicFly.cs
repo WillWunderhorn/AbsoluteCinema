@@ -30,6 +30,7 @@ namespace DIrectorMode
         private Vector3 playerPositionBeforeFlight;
         private bool hasSavedPlayerPosition;
         public bool IsMoving => moving;
+        private bool hasSpeedBeenSet;
 
         public CinematicFly(PositionManager positions)
         {
@@ -39,6 +40,21 @@ namespace DIrectorMode
         // Let's flyyyyyy
         public void StartMove()
         {
+            progress = 0f;
+            distanceAlongPath = 0f;
+
+            if (!hasSpeedBeenSet)
+            {
+                lastSettingSpeed = Settings.Instance.speed;
+                currentSpeed = Mathf.Max(1, lastSettingSpeed);
+                hasSpeedBeenSet = true;
+            }
+            else if (Settings.Instance.speed != lastSettingSpeed)
+            {
+                lastSettingSpeed = Settings.Instance.speed;
+                currentSpeed = Mathf.Max(1, lastSettingSpeed);
+            }
+
             if (Main.Tutorial == null || !Main.Tutorial.IsFreeRoam())
             {
                 Main.Notify("Cinematic flight can only start in free roam");
@@ -52,14 +68,14 @@ namespace DIrectorMode
                     ", then press " + Settings.Instance.grabPos2Key + " to finish the path");
                 return;
             }
-
-            
-            player = Main.FindPlayer();
+            if (!IsZooming() && !(Main.Vertigo?.IsActive ?? false) && !(Main.Greenscreen?.IsPlacing ?? false))// debug
+                player = Main.FindPlayer();
             if (player == null)
             {
-                MelonLogger.Warning("WorldView not found (are you in a scene?)");
+                MelonLogger.Warning("WorldView not found ..."); // debug
                 return;
             }
+
 
             flightSamples = positions.BuildPathSamples(Settings.Instance.pathCurveAmount);
             sampleDistances = new List<float>(flightSamples.Count);
@@ -98,8 +114,6 @@ namespace DIrectorMode
 
             progress = 0f;
             distanceAlongPath = 0f;
-            lastSettingSpeed = Settings.Instance.speed;
-            currentSpeed = Mathf.Max(1, lastSettingSpeed);
 
             controller = player.GetComponent<CharacterController>();
             if (controller != null)
@@ -121,8 +135,6 @@ namespace DIrectorMode
             if (!moving)
                 return;
 
-            // Outside free roam the flight holds its current position and
-            // progress. The mapped start/stop key and Escape can still cancel it.
             if (Main.Tutorial == null || !Main.Tutorial.IsFreeRoam())
             {
                 HandlePausedInput();
@@ -137,13 +149,6 @@ namespace DIrectorMode
 
             Settings s = Settings.Instance;
 
-            if (s.speed != lastSettingSpeed)
-            {
-                lastSettingSpeed = s.speed;
-                currentSpeed = Mathf.Max(1, lastSettingSpeed);
-            }
-
-            // allow speed adjustment !ONLY! if not zooming or holding DOF control
             if (!IsZooming() && !(Main.Vertigo != null && Main.Vertigo.IsActive))
             {
                 float scroll = Main.Scroll;
@@ -210,7 +215,7 @@ namespace DIrectorMode
             MelonLogger.Msg("Flight " + reason);
         }
 
-        //uuuuh I need a drink! cofee would be nice! Does wolves even drink coffee? I don't think so. But I do :3
+        //uuuuh I need a drink! coffee would be nice! Does wolves even drink coffee? I don't think so. But I do :3
         private Vector3 EvaluatePath(float distanceAlongPath)
         {
             if (flightSamples == null || flightSamples.Count == 0 || sampleDistances == null)
@@ -266,7 +271,7 @@ namespace DIrectorMode
             Vector3 euler = Quaternion.LookRotation(direction.normalized, Vector3.up).eulerAngles;
             float pitch = euler.x;
             if (pitch > 180f) pitch -= 360f;
-            pitch = -pitch; // vp_FPSCamera uses positive pitch for looking up.
+            pitch = -pitch; // vp_FPSCamera!
             pitch = Mathf.Clamp(pitch, -85f, 85f);
 
             float currentYaw = cam.Angle.x;

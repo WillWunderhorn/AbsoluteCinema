@@ -235,8 +235,8 @@ namespace DIrectorMode
             if (Main.CamZoom != null)
                 Main.CamZoom.SetVertigoFovScale(1f);
 
-            if (notify)
-                Main.Notify("Vertigo off");
+            if (notify);
+                //Main.Notify("Vertigo off");
         }
 
         private static void SetAllAngles(vp_FPSCamera cam, Vector2 angle)

@@ -11,8 +11,8 @@ namespace DIrectorMode
         private const float DistanceStep = 1.15f;
         private const float SphereSize = 0.35f;
 
-        private bool placing;// holding T
-        private bool hasTarget;// tracker has been placed, camera is locked
+        private bool placing;
+        private bool hasTarget;
         private GameObject sphere;
         private Vector3 targetPoint;
         private float placeDistance = 4.5f;
@@ -23,14 +23,8 @@ namespace DIrectorMode
 
         private static KeyCode GetKey()
         {
-            try
-            {
-                KeyCode k = Settings.Instance.lookAtKey;
-                if (k != KeyCode.None)
-                    return k;
-            }
-            catch { }
-            return KeyCode.T;
+            KeyCode k = Settings.Instance.lookAtKey;
+            return k == KeyCode.None ? KeyCode.T : k;
         }
 
         public void Update()

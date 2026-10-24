@@ -28,7 +28,6 @@ namespace DIrectorMode
         private static bool openIsStatic;
         private static int cachedFrame = -1;
         private static bool cachedValue;
-        // True while the developer console is open (cached per frame, this is probably not the best approach but it works)
         public static bool IsOpen
         {
             get
@@ -40,6 +39,16 @@ namespace DIrectorMode
                 cachedValue = Read();
                 return cachedValue;
             }
+        }
+
+        internal static void Invalidate()
+        {
+            resolved = false;
+            openProp = null;
+            instanceProp = null;
+            openIsStatic = false;
+            cachedFrame = -1;
+            cachedValue = false;
         }
 
         private static bool Read()
@@ -67,7 +76,6 @@ namespace DIrectorMode
             }
         }
 
-        // I found it
         private static void Resolve()
         {
             resolved = true;

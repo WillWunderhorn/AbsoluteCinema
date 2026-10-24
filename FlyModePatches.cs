@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using Il2Cpp;
 
-//enable/disable ingame fly mode
+// enable/disable
 namespace DIrectorMode
 {
     [HarmonyPatch(typeof(FlyMode), nameof(FlyMode.Enter))]

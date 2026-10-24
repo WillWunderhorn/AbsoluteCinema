@@ -5,15 +5,15 @@ namespace DIrectorMode
 {
     public class HollandAngle
     {
-        private const float DoublePressTime = 0.35f;// double press
-        private const float PitchLimit = 85f;// pitch
+        private const float DoublePressTime = 0.35f;
+        private const float PitchLimit = 85f;
 
         private bool locking;
         private Vector2 lockedAngle;
 
-        private float rawRoll;// roll while dragging
+        private float rawRoll;
         private float roll;
-        private float shownRoll;// roll actually smoothed
+        private float shownRoll;
         private bool applied;
         private float flyBankRoll;
         private float lastPress = -10f;
@@ -83,6 +83,10 @@ namespace DIrectorMode
 
             if (cam == null)
             {
+                if (applied)
+                {
+                    applied = false;
+                }
                 hasBaseline = false;
                 return;
             }

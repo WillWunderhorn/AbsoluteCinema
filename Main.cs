@@ -23,10 +23,16 @@ namespace DIrectorMode
         internal static VertigoControl Vertigo { get; private set; }
         internal static WeatherController WeatherController { get; private set; }
         internal static WeatherMenu WeatherMenu { get; private set; }
+        internal static Greenscreen Greenscreen { get; private set; }
+        internal static MotionTracker MotionTracker { get; private set; }
         private static bool wasFreeRoam;
 
-        // ignore mod hotkeys while another overlay owns input
-        internal static bool InputBlocked => ConsoleState.IsOpen || UnityExplorerState.IsOpen || (WeatherMenu != null && WeatherMenu.IsOpen);
+        // ignore mod hotkeys while another overlay owns input, or while the game is placing an object
+        internal static bool InputBlocked =>
+            ConsoleState.IsOpen ||
+            UnityExplorerState.IsOpen ||
+            (WeatherMenu != null && WeatherMenu.IsOpen) ||
+            PlacingState.IsPlacing;
 
         internal static bool Key(KeyCode key) => !InputBlocked && Input.GetKey(key);
         internal static bool KeyDown(KeyCode key) => !InputBlocked && Input.GetKeyDown(key);
@@ -61,6 +67,8 @@ namespace DIrectorMode
             WeatherController = new WeatherController();
             WeatherController.Init();
             WeatherMenu = new WeatherMenu(WeatherController);
+            Greenscreen = new Greenscreen();
+            MotionTracker = new MotionTracker();
         }
 
         public override void OnUpdate()
@@ -69,19 +77,23 @@ namespace DIrectorMode
             Settings s = Settings.Instance;
             WeatherMenu.Update();
 
-            if (!ConsoleState.IsOpen && !UnityExplorerState.IsOpen && !Tutorial.IsOpen && Input.GetKeyDown(s.weatherMenuKey))
+            if (!ConsoleState.IsOpen && !UnityExplorerState.IsOpen && !Tutorial.IsOpen
+                && !PlacingState.IsPlacing
+                && Input.GetKeyDown(s.weatherMenuKey))
             {
                 WeatherMenu.Toggle();
-                return; // same keypress is not trigger another action
-            }
-
-            if (WeatherMenu.IsOpen)
-            {
                 return;
             }
 
+            if (WeatherMenu.IsOpen)
+                return;
+
             // tutorial on every frame
             Tutorial.Update();
+
+            if (Greenscreen != null)
+                Greenscreen.Update();
+
             if (!Tutorial.IsFreeRoam())
             {
                 UpdateFreeRoamState();
@@ -89,47 +101,61 @@ namespace DIrectorMode
             }
             if (Tutorial.IsOpen) return;
 
-            if (Main.KeyDown(s.cinematicKey))
-                SmoothCamera.Toggle();
+            //placing mode: only motion record or play stays available
+            bool gamePlacing = PlacingState.IsPlacing;
 
-            if (Main.KeyDown(s.grabPos1Key))
-                Positions.AddPathPoint();
-
-            if (Main.KeyDown(s.grabPos2Key))
-                Positions.FinishPath();
-
-            if (Main.KeyDown(s.startKey))
+            if (!gamePlacing)
             {
-                if (CinematicFly.IsMoving)
-                    CinematicFly.StopMove("stopped by key");
-                else
-                    CinematicFly.StartMove();
+                if (Main.KeyDown(s.cinematicKey) &&
+                    !(Greenscreen != null && Greenscreen.IsRotating))
+                    SmoothCamera.Toggle();
+
+                if (Main.KeyDown(s.grabPos1Key))
+                    Positions.AddPathPoint();
+
+                if (Main.KeyDown(s.grabPos2Key))
+                    Positions.FinishPath();
+
+                if (Main.KeyDown(s.startKey))
+                {
+                    if (CinematicFly.IsMoving)
+                        CinematicFly.StopMove("stopped by key");
+                    else
+                        CinematicFly.StartMove();
+                }
+
+                if (Main.KeyDown(s.resetKey))
+                {
+                    Positions.ResetPositions();
+                    if (MotionTracker != null)
+                        MotionTracker.ClearClip(false);
+                }
+
+                if (Main.KeyDown(s.flyKey))
+                {
+                    if (FastFlyMode.IsFlying)
+                        FastFlyMode.StopFly();
+                    else
+                        FastFlyMode.StartFly();
+                }
+
+                if (Main.KeyDown(s.hideHudKey))
+                    HideHUD.Toggle();
+
+                Vertigo.Update();
+                FastFlyMode.Update();
+                SlowMotion.Update();
             }
 
-            if (Main.KeyDown(s.resetKey))
-                Positions.ResetPositions();
-
-            if (Main.KeyDown(s.flyKey))
-            {
-                if (FastFlyMode.IsFlying)
-                    FastFlyMode.StopFly();
-                else
-                    FastFlyMode.StartFly();
-            }
-
-            if (Main.KeyDown(s.hideHudKey))
-                HideHUD.Toggle();
-
-            Vertigo.Update();
-            FastFlyMode.Update();
-            SlowMotion.Update();
+            // motion capture works even while at placing state
+            if (MotionTracker != null) MotionTracker.Update();
         }
 
         public override void OnLateUpdate()
         {
             HideHUD.LateUpdate();
 
-            // tutorial and weather menu pause
+            // pause
             Tutorial.LateUpdate();
             Positions.UpdatePreview();
             if (!Tutorial.IsFreeRoam())
@@ -145,20 +171,37 @@ namespace DIrectorMode
                 return;
             }
 
+            PlacingState.LateUpdatePinFov();
+
+            if (PlacingState.IsPlacing)
+            {
+                if (MotionTracker != null)
+                    MotionTracker.LateUpdate();
+                return;
+            }
+
             CinematicFly.Update();
             CamZoom.Update();
             HollandAngle.Update();
 
-            // smooth camera stays out of the way while the tilt tool or a look-at target controls the view
+            bool greenscreenRotating = Greenscreen != null && Greenscreen.IsRotating;
+            bool motionPlaying = MotionTracker != null && MotionTracker.IsPlaying;
+
             bool lookAtTracking = LookAt.HasTarget && !LookAt.IsPlacing;
             bool pathCameraFollowing = CinematicFly.IsMoving && Settings.Instance.lookAlongPath;
-            if (!HollandAngle.IsLocking && !lookAtTracking && !pathCameraFollowing)
-            SmoothCamera.Update();
+            if (!HollandAngle.IsLocking && !lookAtTracking && !pathCameraFollowing && !greenscreenRotating && !motionPlaying)
+                SmoothCamera.Update();
             LookAt.Update();
             CinematicFly.UpdateCameraDirection();
             FastFlyMode.UpdateBank();
             HollandAngle.EndFrame();
             Vertigo.LateUpdate();
+
+            // Freeze camera only while GS rotation key is held
+            if (Greenscreen != null && Greenscreen.IsPlacing)
+                Greenscreen.LateUpdate();
+            if (MotionTracker != null)
+                MotionTracker.LateUpdate();
         }
 
         private static void UpdateFreeRoamState()
@@ -179,7 +222,6 @@ namespace DIrectorMode
 
             if (wasFreeRoam)
             {
-                // Clear the menu's persistent world toggles when leaving roam.
                 if (WeatherController != null)
                 {
                     if (WeatherController.IsWeatherLocked()) WeatherController.UnlockWeather();
@@ -199,6 +241,9 @@ namespace DIrectorMode
             if (CamZoom != null && (vertigoWasActive || CamZoom.ZoomFactor > 1.005f)) CamZoom.Reset();
             if (HollandAngle != null && HollandAngle.IsActive) HollandAngle.Reset();
             if (LookAt != null && (LookAt.HasTarget || LookAt.IsPlacing)) LookAt.Reset();
+            if (Greenscreen != null && Greenscreen.IsPlacing) Greenscreen.CancelPlacement();
+            if (MotionTracker != null)
+                MotionTracker.StopActive();
             if (SlowMotion != null && (SlowMotion.CurrentScale != 1f || Time.timeScale > 0f && Time.timeScale != 1f))
                 SlowMotion.ResetForPanel();
             if (HideHUD != null && HideHUD.IsHidden) HideHUD.Reset();
@@ -214,6 +259,8 @@ namespace DIrectorMode
             LookAt.Reset();
             SlowMotion.Reset();
             HideHUD.Reset();
+            if (Greenscreen != null) Greenscreen.Reset();
+            if (MotionTracker != null) MotionTracker.StopActive();
 
             if (CinematicFly.IsMoving)
                 CinematicFly.StopMove("scene changed");
