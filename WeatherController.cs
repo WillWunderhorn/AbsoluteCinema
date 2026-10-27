@@ -323,17 +323,28 @@ namespace DIrectorMode
 
         public bool UnlockWeather()
         {
+            // F6 scan result: only console:set_weather clear clears IsLocked()
             try
             {
-                WeatherTransition wt = GetWeatherTransition();
-                if (wt == null || !wt.IsLocked()) return true;
+                if (!IsWeatherLocked())
+                    return true;
 
-                wt.m_UnmanagedWeatherStage = WeatherStage.Undefined;
-                return !wt.IsLocked();
+                if (!RunConsoleSilent("set_weather clear"))
+                    return false;
+
+                try
+                {
+                    WeatherTransition wt = GetWeatherTransition();
+                    if (wt != null && wt.IsLocked())
+                        wt.m_UnmanagedWeatherStage = WeatherStage.Undefined;
+                }
+                catch { }
+
+                return !IsWeatherLocked();
             }
             catch (Exception e)
             {
-                //MelonLogger.Warning("WeatherController: could not unlock weather: " + e.Message);
+                MelonLogger.Warning("WeatherController: could not unlock weather: " + e.Message);
                 return false;
             }
         }
@@ -644,7 +655,6 @@ namespace DIrectorMode
 
                 if (success && args[0] != null)
                 {
-                    // Return the ID as a string
                     return args[0].ToString();
                 }
             }

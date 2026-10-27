@@ -23,9 +23,8 @@ namespace DIrectorMode
             public const float SliderX = 42f, SliderWidth = 396f, TimeButtonWidth = 204f;
             public const float ToggleX = 350f, ToggleLabelOffsetX = 31f;
             public const float GodToggleY = 621f, GhostToggleY = 655f;
-            // Visual size controls: titles are 20% smaller, controls 10% smaller, row text 5% larger.
-            public const float TitleFontSize = 32f; // previous size: 40px
-            public const float ControlScale = 0.72f; // previous scale: 0.80
+            public const float TitleFontSize = 32f;
+            public const float ControlScale = 0.72f;
             public const float PressedScale = 0.92f;
             public const float RowTextScale = 1.05f;
         }
@@ -104,13 +103,11 @@ namespace DIrectorMode
             lockedAngle = cam != null ? cam.Angle : Vector2.zero;
         }
 
-        // True only when the menu may be opened (player fully in free roam).
         private static bool CanOpen()
         {
             if (!CanStayOpen())
                 return false;
 
-            // Do not open over inventory / dialogue / other locked control modes.
             try
             {
                 PlayerManager player = GameManager.GetPlayerManagerComponent();
@@ -126,7 +123,7 @@ namespace DIrectorMode
             return true;
         }
 
-        // True while free-roam conditions still hold (allows Locked control from this menu).
+        // free-roam 
         private static bool CanStayOpen()
         {
             if (GameManager.GetVpFPSCamera() == null)
@@ -161,7 +158,6 @@ namespace DIrectorMode
             }
             catch { }
 
-            // Extra hard blocks for panels IsFreeRoam can miss depending on UI hierarchy
             if (IsBlockingPanelOpen())
                 return false;
 
@@ -175,7 +171,7 @@ namespace DIrectorMode
             "Panel_BodyHarvest", "Panel_BreakDown", "Panel_Cooking", "Panel_Crafting",
             "Panel_IceFishing", "Panel_MainMenu", "Panel_OptionsMenu", "Panel_Stats",
             "Panel_SandBoxing", "Panel_Notification", "Panel_FireStart", "Panel_PickWater"
-        };
+        };// from UE
 
         private static bool IsBlockingPanelOpen()
         {
@@ -297,7 +293,6 @@ namespace DIrectorMode
         {
             if (!isOpen) return;
 
-            // Drop out the moment free-roam is lost (inventory, pause, map, etc.)
             if (!CanStayOpen())
             {
                 Close();
@@ -312,7 +307,6 @@ namespace DIrectorMode
         {
             if (!isOpen) return;
 
-            // Keep FOV pinned – Locked control mode often rewrites it after open.
             ApplySavedFov();
 
             vp_FPSCamera cam = GameManager.GetVpFPSCamera();
@@ -602,8 +596,9 @@ namespace DIrectorMode
                     if (weatherLocked)
                     {
                         bool unlocked = weather.UnlockWeather();
-                        weatherLocked = false;
-                        if (!unlocked) MelonLoader.MelonLogger.Warning("Weather menu: unlock was requested, but the game still reports weather locked.");
+                        weatherLocked = weather.IsWeatherLocked();
+                        if (!unlocked && weatherLocked)
+                            MelonLoader.MelonLogger.Warning("Weather menu: weather is still locked after unlock.");
                     }
                     else weatherLocked = weather.SetWeather(SelectedWeather(), true);
                 },

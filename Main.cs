@@ -88,7 +88,7 @@ namespace DIrectorMode
             if (WeatherMenu.IsOpen)
                 return;
 
-            // tutorial on every frame
+            // on every frame
             Tutorial.Update();
 
             if (Greenscreen != null)
@@ -101,7 +101,6 @@ namespace DIrectorMode
             }
             if (Tutorial.IsOpen) return;
 
-            //placing mode: only motion record or play stays available
             bool gamePlacing = PlacingState.IsPlacing;
 
             if (!gamePlacing)
@@ -147,7 +146,7 @@ namespace DIrectorMode
                 SlowMotion.Update();
             }
 
-            // motion capture works even while at placing state
+            // motion capture works even while the game is placing an object
             if (MotionTracker != null) MotionTracker.Update();
         }
 
@@ -171,10 +170,9 @@ namespace DIrectorMode
                 return;
             }
 
-            PlacingState.LateUpdatePinFov();
-
             if (PlacingState.IsPlacing)
             {
+                CamZoom.Update();
                 if (MotionTracker != null)
                     MotionTracker.LateUpdate();
                 return;
@@ -186,7 +184,6 @@ namespace DIrectorMode
 
             bool greenscreenRotating = Greenscreen != null && Greenscreen.IsRotating;
             bool motionPlaying = MotionTracker != null && MotionTracker.IsPlaying;
-
             bool lookAtTracking = LookAt.HasTarget && !LookAt.IsPlacing;
             bool pathCameraFollowing = CinematicFly.IsMoving && Settings.Instance.lookAlongPath;
             if (!HollandAngle.IsLocking && !lookAtTracking && !pathCameraFollowing && !greenscreenRotating && !motionPlaying)
@@ -197,7 +194,6 @@ namespace DIrectorMode
             HollandAngle.EndFrame();
             Vertigo.LateUpdate();
 
-            // Freeze camera only while GS rotation key is held
             if (Greenscreen != null && Greenscreen.IsPlacing)
                 Greenscreen.LateUpdate();
             if (MotionTracker != null)
@@ -266,7 +262,6 @@ namespace DIrectorMode
                 CinematicFly.StopMove("scene changed");
             if (Tutorial.IsOpen) Tutorial.Close();
             WeatherMenu.Close();
-            // all points belong to one scene
             if (sceneName == UnityEngine.SceneManagement.SceneManager.GetActiveScene().name)
             {
                 Positions.ResetPositions(false);
