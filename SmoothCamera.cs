@@ -38,8 +38,8 @@ namespace DIrectorMode
             cinematic = !cinematic;
             if (wasActive != IsActive) needSync = true;
 
-            Main.Notify("Smooth camera is " +
-                (cinematic ? "ON" : "OFF"));
+            //Main.Notify("Smooth camera is " +
+            //    (cinematic ? "ON" : "OFF"));
         }
 
         // current smoothness
@@ -60,7 +60,7 @@ namespace DIrectorMode
         {
             if (Main.Key(Settings.Instance.zoomKey)) return false;
             if (Main.CamZoom != null && Main.CamZoom.ZoomFactor > 1.005f) return false;
-            if (Main.FastFlyMode != null && Main.FastFlyMode.IsFlying) return false;
+            if (Main.FastFlyMode != null && Main.FastFlyMode.IsAnyFly) return false;
             if (Main.CinematicFly != null && Main.CinematicFly.IsMoving) return false;
             if (Main.Tutorial != null && Main.Tutorial.IsOpen) return false;
             if (Main.Vertigo != null && Main.Vertigo.IsActive) return false;

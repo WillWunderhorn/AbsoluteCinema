@@ -21,4 +21,14 @@ namespace DIrectorMode
             if (Main.FastFlyMode != null) Main.FastFlyMode.OnGameExited();
         }
     }
+
+    [HarmonyPatch(typeof(vp_FPSCamera), nameof(vp_FPSCamera.LateUpdate))]
+    internal static class FreeCamAfterCameraLateUpdatePatch
+    {
+        internal static void Postfix()
+        {
+            if (Main.FastFlyMode != null && Main.FastFlyMode.IsFreeCam)
+                Main.FastFlyMode.LateUpdateMove();
+        }
+    }
 }

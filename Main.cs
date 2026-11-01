@@ -26,6 +26,8 @@ namespace DIrectorMode
         internal static Greenscreen Greenscreen { get; private set; }
         internal static MotionTracker MotionTracker { get; private set; }
         private static bool wasFreeRoam;
+        private static float flyKeyDownAt = -1f;
+        private static bool flyHoldTriggered;
 
         // ignore mod hotkeys while another overlay owns input, or while the game is placing an object
         internal static bool InputBlocked =>
@@ -130,12 +132,39 @@ namespace DIrectorMode
                         MotionTracker.ClearClip(false);
                 }
 
-                if (Main.KeyDown(s.flyKey))
+                KeyCode flyKey = s.flyKey;
+                if (flyKey != KeyCode.None)
                 {
-                    if (FastFlyMode.IsFlying)
-                        FastFlyMode.StopFly();
-                    else
-                        FastFlyMode.StartFly();
+                    if (Main.KeyDown(flyKey))
+                    {
+                        if (FastFlyMode.IsAnyFly)
+                        {
+                            FastFlyMode.StopAll();
+                            flyKeyDownAt = -1f;
+                            flyHoldTriggered = false;
+                        }
+                        else
+                        {
+                            flyKeyDownAt = Time.unscaledTime;
+                            flyHoldTriggered = false;
+                        }
+                    }
+                    else if (flyKeyDownAt >= 0f && Main.Key(flyKey) && !flyHoldTriggered)
+                    {
+                        if (Time.unscaledTime - flyKeyDownAt >= 1f)
+                        {
+                            flyHoldTriggered = true;
+                            flyKeyDownAt = -1f;
+                            FastFlyMode.StartFreeCam();
+                        }
+                    }
+                    else if (flyKeyDownAt >= 0f && !Input.GetKey(flyKey))
+                    {
+                        if (!flyHoldTriggered && !FastFlyMode.IsAnyFly)
+                            FastFlyMode.StartFly();
+                        flyKeyDownAt = -1f;
+                        flyHoldTriggered = false;
+                    }
                 }
 
                 if (Main.KeyDown(s.hideHudKey))
@@ -191,6 +220,7 @@ namespace DIrectorMode
             LookAt.Update();
             CinematicFly.UpdateCameraDirection();
             FastFlyMode.UpdateBank();
+            if (FastFlyMode != null) FastFlyMode.LateUpdateMove();
             HollandAngle.EndFrame();
             Vertigo.LateUpdate();
 
@@ -232,7 +262,7 @@ namespace DIrectorMode
         {
             bool vertigoWasActive = Vertigo != null && Vertigo.IsActive;
             if (vertigoWasActive) Vertigo.Reset();
-            if (FastFlyMode != null && FastFlyMode.IsFlying) FastFlyMode.Reset();
+            if (FastFlyMode != null && FastFlyMode.IsAnyFly) FastFlyMode.Reset();
             if (SmoothCamera != null && SmoothCamera.IsActive) SmoothCamera.Reset();
             if (CamZoom != null && (vertigoWasActive || CamZoom.ZoomFactor > 1.005f)) CamZoom.Reset();
             if (HollandAngle != null && HollandAngle.IsActive) HollandAngle.Reset();

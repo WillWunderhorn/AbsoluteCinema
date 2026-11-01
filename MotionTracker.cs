@@ -25,11 +25,11 @@ namespace DIrectorMode
         private float duration;
         private int playIndex;
 
-        // Recording origin (world) â€“ used only while recording
+        // Recording origin (world) – used only while recording
         private Vector3 recordOriginPos;
         private float recordOriginYaw;
 
-        // Playback origin â€“ current player pose when play starts
+        // Playback origin – current player pose when play starts
         private Vector3 playOriginPos;
         private float playOriginYaw;
 
@@ -203,8 +203,8 @@ namespace DIrectorMode
             if (Main.CinematicFly != null && Main.CinematicFly.IsMoving)
                 Main.CinematicFly.StopMove("stopped by motion playback");
 
-            if (Main.FastFlyMode != null && Main.FastFlyMode.IsFlying)
-                Main.FastFlyMode.StopFly(false);
+            if (Main.FastFlyMode != null && Main.FastFlyMode.IsAnyFly)
+                Main.FastFlyMode.StopAll(false);
 
             body = ResolveBody();
             vp_FPSCamera cam = GameManager.GetVpFPSCamera();
