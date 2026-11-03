@@ -31,6 +31,7 @@ namespace DIrectorMode
 
         // ignore mod hotkeys while another overlay owns input, or while the game is placing an object
         internal static bool InputBlocked =>
+            !Settings.Instance.enableMod ||
             ConsoleState.IsOpen ||
             UnityExplorerState.IsOpen ||
             (WeatherMenu != null && WeatherMenu.IsOpen) ||
@@ -75,6 +76,23 @@ namespace DIrectorMode
 
         public override void OnUpdate()
         {
+            if (!Settings.Instance.enableMod)
+            {
+                if (wasFreeRoam)
+                {
+                    DisableFreeRoamTools();
+                    if (WeatherController != null)
+                    {
+                        if (WeatherController.IsWeatherLocked()) WeatherController.UnlockWeather();
+                        if (WeatherController.IsWindLocked()) WeatherController.UnlockWind();
+                    }
+                    if (WeatherMenu != null && WeatherMenu.IsOpen)
+                        WeatherMenu.Close();
+                    wasFreeRoam = false;
+                }
+                return;
+            }
+
             UpdateFreeRoamState();
             Settings s = Settings.Instance;
             WeatherMenu.Update();
@@ -90,7 +108,6 @@ namespace DIrectorMode
             if (WeatherMenu.IsOpen)
                 return;
 
-            // on every frame
             Tutorial.Update();
 
             if (Greenscreen != null)
@@ -181,9 +198,11 @@ namespace DIrectorMode
 
         public override void OnLateUpdate()
         {
+            if (!Settings.Instance.enableMod)
+                return;
+
             HideHUD.LateUpdate();
 
-            // pause
             Tutorial.LateUpdate();
             Positions.UpdatePreview();
             if (!Tutorial.IsFreeRoam())
@@ -328,6 +347,9 @@ namespace DIrectorMode
 
         public override void OnGUI()
         {
+            if (!Settings.Instance.enableMod)
+                return;
+
             if (Tutorial != null) Tutorial.OnGUI();
             if (WeatherMenu != null) WeatherMenu.OnGUI();
         }

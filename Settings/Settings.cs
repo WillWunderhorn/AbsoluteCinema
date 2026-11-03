@@ -8,6 +8,12 @@ namespace DIrectorMode
     {
         public static Settings Instance { get; } = new Settings();
 
+        [Section("General")] // -------------------------------------------------------------------------------------- ON/OFF
+
+        [Name("Enable Absolute Cinema")]
+        [Description("Turn the entire mod on or off")]
+        public bool enableMod = true;
+
         [Section("Tutorial")] // -------------------------------------------------------------------------------------- Tutorial
 
         [Name("Open tutorial")]
